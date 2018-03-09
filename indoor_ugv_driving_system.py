@@ -28,6 +28,64 @@ cap.set(4,480)
 StepSize = 8
 EdgeArray = []
 
+#Bresenham's Line Algorithm
+def get_line(start, end):
+    """Bresenham's Line Algorithm
+    Produces a list of tuples from start and end
+ 
+    >>> points1 = get_line((0, 0), (3, 4))
+    >>> points2 = get_line((3, 4), (0, 0))
+    >>> assert(set(points1) == set(points2))
+    >>> print points1
+    [(0, 0), (1, 1), (1, 2), (2, 3), (3, 4)]
+    >>> print points2
+    [(3, 4), (2, 3), (1, 2), (1, 1), (0, 0)]
+    """
+    # Setup initial conditions
+    x1, y1 = start
+    x2, y2 = end
+    dx = x2 - x1
+    dy = y2 - y1
+ 
+    # Determine how steep the line is
+    is_steep = abs(dy) > abs(dx)
+ 
+    # Rotate line
+    if is_steep:
+        x1, y1 = y1, x1
+        x2, y2 = y2, x2
+ 
+    # Swap start and end points if necessary and store swap state
+    swapped = False
+    if x1 > x2:
+        x1, x2 = x2, x1
+        y1, y2 = y2, y1
+        swapped = True
+ 
+    # Recalculate differentials
+    dx = x2 - x1
+    dy = y2 - y1
+ 
+    # Calculate error
+    error = int(dx / 2.0)
+    ystep = 1 if y1 < y2 else -1
+ 
+    # Iterate over bounding box generating points between start and end
+    y = y1
+    points = []
+    for x in range(x1, x2 + 1):
+        coord = (y, x) if is_steep else (x, y)
+        points.append(coord)
+        error -= abs(dy)
+        if error < 0:
+            y += ystep
+            error += dx
+ 
+    # Reverse the list if the coordinates were swapped
+    if swapped:
+        points.reverse()
+    return points
+
 # line segment intersection using vectors
 # see Computer Graphics by F.S. Hill
 #
@@ -61,17 +119,19 @@ p1 = array( [0, two_thirds_height] )
 p2 = array( [imagewidth, two_thirds_height] )
 p4 = array( [imagewidth, imageheight])
 p5 = array( [0, imageheight])
-
+delta = 0
 while(True):
+    if delta > imagewidth:
+        delta = imagewidth
     obstacles = []
     newObstacle = Obstacle((0,0),(0,0))
-    obstacles.append(newObstacle)
+    #obstacles.append(newObstacle)
     EdgeArray = []
     time.sleep(0.3)#let image settle
     # Capture frame-by-frame
     ret, frame = cap.read()
     roi = frame[two_thirds_height:imageheight, 0:imagewidth]
-    vanishing_point = (middle_width,middle_height)
+    vanishing_point = (middle_width+delta,middle_height)
     # Our operations on the frame come here
     gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
     gray = cv2.bilateralFilter(gray,9,30,30)
@@ -88,7 +148,9 @@ while(True):
     cv2.drawContours(frame, [road_extraction_area], 0,(255,255,255),2)
     for j in range (0,imgw,StepSize):    #for the width of image array
         for i in range(imgh-3,0,-1):    #step through every pixel in height of array from bottom to top. Ignore first couple of pixels as may trigger due to undistort
-            if img.item(i,j) == 255:       #check to see if the pixel is white which indicates an edge has been found                    
+            if img.item(i,j) == 255:       #check to see if the pixel is white which indicates an edge has been found
+                if not cv2.pointPolygonTest(road_extraction_area, (j,i+((imageheight/3)*2)), False) >= 0:
+                    break
                 if not len(EdgeArray) == 0 and j - EdgeArray[len(EdgeArray)-1][0] == StepSize:
                     obstacles[len(obstacles)-1].endPoint = (j,i+((imageheight/3)*2))
                     #print "endPoint: %d, %d" % (j,i+((imageheight/3)*2))
@@ -101,12 +163,25 @@ while(True):
     for pxl in range (len(EdgeArray)-1):      #draw lines between points in ObstacleArray       
         if EdgeArray[pxl+1][0] - EdgeArray[pxl][0] == StepSize: # allora sono un unico oggetto
             cv2.line(frame, EdgeArray[pxl], EdgeArray[pxl+1],(255,0,0),1)
-            cv2.line(frame, (EdgeArray[pxl][0], imageheight), EdgeArray[pxl],(0,255,0),1)
+            #cv2.line(frame, (EdgeArray[pxl][0], imageheight), EdgeArray[pxl],(0,255,0),1)
+    #cv2.line(frame,vanishing_point, (middle_width, imageheight), (255,255,255))
 
-    for pippo in obstacles:
-        cv2.circle(frame, pippo.startPoint, 5, (0,255,255))
-        cv2.circle(frame, pippo.endPoint, 6, (0,0,255))
-#        print pippo.startPoint, pippo.endPoint
+    for hurdle in obstacles:
+        colore = (0,255,255)
+        for bisX in get_line(vanishing_point, (middle_width, imageheight)):
+            if hurdle.endPoint < bisX: # obstacle is on the left
+                colore = (0,0,255)
+                delta += 1 # turn right
+            else: # obstacle on the right
+                if hurdle.startPoint < bisX: #hurdle in middle path
+                    pass #print "middle path hurdle"
+                delta -= 1 #turn left 
+        cv2.circle(frame, hurdle.endPoint, 6, colore)        
+        #cv2.circle(frame, pippo.startPoint, 5, (0,255,255))
+        #cv2.circle(frame, pippo.endPoint, 6, (0,0,255))
+    if len(obstacles) == 0:
+        delta = 0
+        #print delta
     
     # Display the resulting frame
     cv2.imshow('frame',frame)
@@ -117,3 +192,4 @@ while(True):
 # When everything done, release the capture
 cap.release()
 cv2.destroyAllWindows
+
