@@ -8,3 +8,6 @@ Main idea is overlay different cv systems so to have the better possible definit
 
 to achive the better path possible. Each steps influences the VP definition, which defines the ROI (*Region of Interest*). So first VP cohordinates are expressed by lane search. If no lanes are found, UGV would assume it's on some rough path (or internal floor), so it would rather rely on *Texture Flow Estimation* [1] . Once we have VP, then we can define it as the vertex of one triangle whose other vertex are == (0, image Height), (image Width, image Height). Cutting the top part of it by using horizon line or camera tilt setup, we have the road extraction part as one trapezoid. 
 This trapezoid is then used to look for obstacle detection, thus furthing changing VP cohordinates. 
+
+[1] : "Robust detection of shady and highlighted roads for monocular camera based navigation of UGV" -  IEEE International Conference on Robotics and Automation · June 2011 (Miksik, Petyovsky, Zalud, Jura)
+[2] : "Vision for Mobile Robot Navigation: A Survey" - IEEE Transactions on pattern analysis and machine intelligence, Vol. 24, N. 2, February 2002 (DeSouza, Kak)
