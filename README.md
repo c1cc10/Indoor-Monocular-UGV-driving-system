@@ -1,5 +1,10 @@
 # Indoor Monocular UGV driving system
-Building up all-in-one driving system (lane detection, position calibration, obstacle avoidance) for indoor spaces using just one camera. 
+Building up all-in-one driving system (lane detection, position calibration, obstacle avoidance) for indoor spaces using just one camera. This work relies on multiple fundations, but the main ones are:
+
+- severale lane finding docs published on medium.com
+- works and derived ones from udacity.com (nano degree on autonomous driving vehicols)
+- ...
+
 # Approach
 Main idea is overlay different cv systems so to have the better possible definition of the scene, meant only to discover/follow one path towards the path-end. The system is designed to correct directions by using VP (*vanishing point*). It would use:
 
