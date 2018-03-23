@@ -37,7 +37,6 @@ class Obstacle:
         self.position[1] = highness[newhigh]
     def changeSide(self, newSide):
         self.position[0] = side[newside]
-
     
 class RoadDetection:
     
@@ -84,8 +83,11 @@ class RoadDetection:
             #cv2.circle(frame, pippo.endPoint, 6, (0,0,255))
         if len(obstacles) == 0:
             self.delta = 0
-
     def draw_line (self, blk_bgd):
+
+        for line in self.lines:
+            x1,y1,x2,y2 = line[0]
+            cv2.line(blk_bgd, (x1, y1+self.one_third_height), (x2, y2+self.one_third_height), [255, 0, 255], 2)
         #print right
         if len(self.right_lanes) > 0:
             vx, vy, cx, cy = cv2.fitLine(np.array(self.right_lanes), cv2.cv.CV_DIST_L2, 0, 0.01, 0.01)
@@ -107,7 +109,7 @@ class RoadDetection:
             slope = (float(y2) - y1) / (x2 - x1)
             if slope == 0: # vertical line
                 continue
-            if math.fabs(slope) < 0.7: #or math.fabs(slope) > 1: # <-- Only consider extreme slope
+            if math.fabs(slope) < 0.5 or math.fabs(slope) > 1: # <-- Only consider extreme slope
                 continue
             if slope > 0 :
                 self.right_lanes.append(np.array([x1,y1+self.one_third_height]))
@@ -115,10 +117,15 @@ class RoadDetection:
             else:
                 self.left_lanes.append(np.array([x1,y1+self.one_third_height]))
                 self.left_lanes.append(np.array([x2,y2+self.one_third_height]))
+        # mitigatori sistemici
+        #self.left_lanes.append(np.array([self.vanishing_point[0],self.vanishing_point[1]]))
+        #self.left_lanes.append(np.array([0,self.imageheight]))
+        #self.right_lanes.append(np.array([self.vanishing_point[0],self.vanishing_point[1]]))
+        #self.right_lanes.append(np.array([self.imagewidth,self.imageheight]))
         return self.draw_line(black_bgd)
 
     def get_lanes(self,img):
-        self.lines = cv2.HoughLinesP(img, rho=1, theta=np.pi/180, threshold=15, lines=np.array([]), minLineLength=10, maxLineGap=30)
+        self.lines = cv2.HoughLinesP(img, rho=1, theta=np.pi/180, threshold=15, lines=np.array([]), minLineLength=14, maxLineGap=200)
         line_img = self.draw_lane_lines_probabilistic()
         #lines = cv2.HoughLines(img, 2, np.pi/180, 20)
         #line_img = draw_lane_lines_deterministic(lines, frame)
@@ -132,6 +139,7 @@ class RoadDetection:
             if self.van_x < 0:
                 self.van_x = 0
             obstacles = []
+            self.lines = [] # azzeriamo sistematicamente lo storico del lane search?
             newObstacle = Obstacle((0,0),(0,0))
             #obstacles.append(newObstacle)
             EdgeArray = []
@@ -185,7 +193,7 @@ class RoadDetection:
         self.cap.release()
         cv2.destroyAllWindows
 
-#cap = cv2.VideoCapture("bici.m4v")
+#cap = cv2.VideoCapture("ORL_to_Tampa.mpeg")
 cap = cv2.VideoCapture(1)
-pippo = RoadDetection(cap)
-pippo.run()
+rd = RoadDetection(cap)
+rd.run()
